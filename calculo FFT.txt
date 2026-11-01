@@ -1,0 +1,78 @@
+import numpy as np
+import matplotlib.pyplot as plt
+
+# 1. Parâmetros do Sinal
+fs = 1000            # Frequência de amostragem (Hz)
+T = 1.0 / fs        # Período de amostragem (s)
+N = 1000            # Número total de pontos/amostras
+t = np.linspace(0.0, N*T, N, endpoint=False) # Eixo do tempo
+
+# 2. Definição das componentes de frequência e amplitudes
+f1, A1 = 50, 1.0
+f2, A2 = 120, 0.7
+f3, A3 = 300, 0.4
+
+# Sintetização do sinal limpo
+sinal_limpo = A1 * np.sin(2 * np.pi * f1 * t) + \
+              A2 * np.sin(2 * np.pi * f2 * t) + \
+              A3 * np.sin(2 * np.pi * f3 * t)
+
+# Adição de ruído aleatório (distribuição normal/gaussiana corrigido para σ = 0.5)
+np.random.seed(42) # Semente fixa para reprodutibilidade
+ruido = np.random.normal(0, 0.5, N)
+sinal_ruidoso = sinal_limpo + ruido
+
+# 3. Cálculo da FFT
+# fft_resultado contém os números complexos da FFT
+fft_resultado = np.fft.fft(sinal_ruidoso)
+
+# Vetor de frequências correspondente (0 até fs/2)
+frequencias = np.fft.fftfreq(N, T)[:N//2]
+
+# Normalização da magnitude e cálculo do espectro de um lado (single-sided spectrum)
+magnitude = (2.0 / N) * np.abs(fft_resultado[:N//2])
+
+# 4. Geração dos Gráficos
+plt.figure(figsize=(12, 7))
+
+# Gráfico 1: Sinal no Domínio do Tempo
+plt.subplot(2, 1, 1)
+plt.plot(t[:200], sinal_ruidoso[:200], label='Sinal Ruidoso x(t)', color='gray', alpha=0.7)
+plt.plot(t[:200], sinal_limpo[:200], label='Sinal Limpo (Referência)', color='blue', linewidth=1.5)
+plt.title('Sinal no Domínio do Tempo (Primeiros 0.2 segundos)')
+plt.xlabel('Tempo [s]')
+plt.ylabel('Amplitude')
+plt.grid(True)
+plt.legend()
+
+# Gráfico 2: Espectro no Domínio da Frequência (FFT)
+plt.subplot(2, 1, 2)
+plt.plot(frequencias, magnitude, color='red', linewidth=1.5)
+plt.title('Espectro de Frequência (Magnitude vs. Frequência via FFT)')
+plt.xlabel('Frequência [Hz]')
+plt.ylabel('Magnitude')
+plt.grid(True)
+plt.xlim(0, 500) # Exibição até a frequência de Nyquist (fs/2)
+plt.ylim(0, max(magnitude) * 1.2) # Espaço extra no topo para as anotações
+
+# Identificar e anotar os valores de magnitude em cima de cada frequência de interesse
+for freq_alvo in [f1, f2, f3]:
+    # Encontra o índice da frequência mais próxima no vetor
+    idx = np.argmin(np.abs(frequencias - freq_alvo))
+    val_freq = frequencias[idx]
+    val_mag = magnitude[idx]
+    
+    # Adiciona a anotação gráfica
+    plt.annotate(f'{val_mag:.2f}',
+                 xy=(val_freq, val_mag),
+                 xytext=(0, 5),  # Deslocamento em pixels (x, y) para cima
+                 textcoords='offset points',
+                 ha='center',
+                 va='bottom',
+                 fontsize=10,
+                 fontweight='bold',
+                 color='darkred',
+                 bbox=dict(boxstyle='round,pad=0.2', fc='yellow', alpha=0.6, ec='orange'))
+
+plt.tight_layout()
+plt.show()
